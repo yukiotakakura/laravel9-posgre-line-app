@@ -1,0 +1,27 @@
+version: "3"
+services:
+  postgres:
+    container_name: "laravel9-posgre-line-app-postgres"
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGPASSWORD: postgres
+      POSTGRES_DB: main
+      TZ: "Asia/Tokyo"
+    ports:
+      - 54320:5432
+    volumes:
+      - ./containers/postgres/data:/var/lib/postgresql/data
+      - ./containers/postgres/logs:/var/logs
+
+  php:
+    container_name: "laravel9-posgre-line-app"
+    build: ./containers/php
+    ports:
+      - "8081:80"
+    volumes:
+      - ./src:/var/www/laravel9-posgre-line-app
+      - ./containers/php/vhost.conf:/etc/apache2/conf-enabled/vhost.conf
+
+
