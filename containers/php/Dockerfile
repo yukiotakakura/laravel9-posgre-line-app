@@ -3,6 +3,7 @@ WORKDIR /var/www/laravel9-posgre-line-app
 
 # PHPのモジュールなどをインストール ※決まり文句
 RUN apt-get update \
+  # libzip-devはzip圧縮時に必要となるライブラリ(libzip は、zlib を使用する)
   && apt-get install -y zlib1g-dev \
   && apt-get install -y libpng-dev \
   && apt-get install -y libpq-dev \
