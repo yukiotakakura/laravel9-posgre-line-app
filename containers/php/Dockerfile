@@ -3,13 +3,13 @@ WORKDIR /var/www/laravel9-posgre-line-app
 
 # PHPのモジュールなどをインストール ※決まり文句
 RUN apt-get update \
-  # libzip-devはzip圧縮時に必要となるライブラリ(libzip は、zlib を使用する)
   && apt-get install -y zlib1g-dev \
-  && apt-get install -y libzip-dev \
   && apt-get install -y libpng-dev \
   && apt-get install -y libpq-dev \
   && apt-get install -y zip unzip \
+  && apt-get install -y libzip-dev \
   # postgresql関係
+  #&& docker-php-ext-install pdo \
   && docker-php-ext-install pdo_pgsql \
   && docker-php-ext-install pgsql \
   # ローカル上で.htaccessを有効する。これが無いとmod_rewriteが有効化されない、例えばLaravel側でルーティングを設定しても404となる
