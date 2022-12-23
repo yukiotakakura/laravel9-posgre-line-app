@@ -24,4 +24,13 @@ services:
       - ./src:/var/www/laravel9-posgre-line-app
       - ./containers/php/vhost.conf:/etc/apache2/conf-enabled/vhost.conf
 
+  ngrok:
+    image: wernight/ngrok
+    ports:
+      - ${WEB_PORT:-4040}:4040
+    environment:
+      NGROK_AUTH: ${NGROK_AUTH}
+      NGROK_PROTOCOL: http
+      NGROK_PORT: php:80
+
 
