@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Livewire\LivewireTutorial\TodoCreate;
+use App\Http\Livewire\LivewireTutorial\TodoList;
+use App\Http\Livewire\LivewireTutorial\TodoUpdate;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,4 +28,8 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
+
+    Route::get('livewire-tutorial/todos/create', TodoCreate::class)->name('livewire-tutorial.todos.create');
+    Route::get('livewire-tutorial/todos', TodoList::class)->name('livewire-tutorial.todos');
+    Route::get('todos/{todo}', TodoUpdate::class)->name('livewire-tutorial.todos.update');
 });
