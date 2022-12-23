@@ -31,5 +31,5 @@ Route::middleware([
 
     Route::get('livewire-tutorial/todos/create', TodoCreate::class)->name('livewire-tutorial.todos.create');
     Route::get('livewire-tutorial/todos', TodoList::class)->name('livewire-tutorial.todos');
-    Route::get('todos/{todo}', TodoUpdate::class)->name('livewire-tutorial.todos.update');
+    Route::get('livewire-tutorial/todos/{todo}', TodoUpdate::class)->name('livewire-tutorial.todos.update');
 });
