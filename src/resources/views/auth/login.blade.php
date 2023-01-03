@@ -43,6 +43,26 @@
                     {{ __('Log in') }}
                 </x-jet-button>
             </div>
+
+            <!-- 👇 このブロックを追加 -->
+            <hr class="my-3">
+            <div class="mt-3">
+                <h3>ソーシャル・ログイン</h3>
+                <div class="my-2">
+                    <a href="{{ route('social_login.redirect', 'line') }}">
+                        <img style="height:50px" src="/images/LINE_APP.png">
+                    </a>
+                </div>
+                <small>
+                    本ウェブサービスでは、LINEによる認証ページで許可を得た場合のみメールアドレスを取得します。<br>
+                    そして、取得されたメールアドレスにつきましては本サービスのログイン以外の目的には一切使用しません。
+                </small>
+                @if (session('messages.danger'))
+                <p>
+                    {{ session('messages.danger') }}
+                </p>
+                @endif
+            </div>
         </form>
     </x-jet-authentication-card>
 </x-guest-layout>

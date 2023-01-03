@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Livewire\LivewireTutorial\TodoCreate;
 use App\Http\Livewire\LivewireTutorial\TodoList;
 use App\Http\Livewire\LivewireTutorial\TodoUpdate;
@@ -20,6 +21,12 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Line
+Route::prefix('login/{provider}')->where(['provider' => '(line)'])->group(function () {
+    Route::get('/',         [LoginController::class, 'redirectToProvider'])->name('social_login.redirect');
+    Route::get('/callback', [LoginController::class, 'handleProviderCallback'])->name('social_login.callback');
+});
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
@@ -29,7 +36,8 @@ Route::middleware([
         return view('dashboard');
     })->name('dashboard');
 
+    // livewireチュートリアル
     Route::get('livewire-tutorial/todos/create', TodoCreate::class)->name('livewire-tutorial.todos.create');
     Route::get('livewire-tutorial/todos', TodoList::class)->name('livewire-tutorial.todos');
-    Route::get('todos/{todo}', TodoUpdate::class)->name('livewire-tutorial.todos.update');
+    Route::get('livewire-tutorial/todos/{todo}', TodoUpdate::class)->name('livewire-tutorial.todos.update');
 });
