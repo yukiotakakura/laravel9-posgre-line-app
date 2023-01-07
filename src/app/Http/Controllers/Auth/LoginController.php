@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use JsonException;
+use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
-use Symfony\Component\HttpFoundation\Response;
 
 class LoginController extends Controller
 {
@@ -18,35 +21,34 @@ class LoginController extends Controller
 
     /**
      * ソーシャルログインをするページへリダイレクトする
-     *
      * @param Request $request
-     * @return void
+     * @return RedirectResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function redirectToProvider(Request $request)
+    public function redirectToProvider(Request $request): \Symfony\Component\HttpFoundation\RedirectResponse|RedirectResponse
     {
-        $socialite = $this->redirectToProviderExcecute($request->provider);
+        $socialite = $this->redirectToProviderExecute($request->provider);
         return $socialite->redirect();
     }
 
+
     /**
      * コールバック処理
-     *
      * @param Request $request
-     * @return void
+     * @return Application|RedirectResponse|Redirector|string
      */
-    public function handleProviderCallback(Request $request)
+    public function handleProviderCallback(Request $request): string|Redirector|Application|RedirectResponse
     {
         if (!isset($_COOKIE['line_login_state'])) {
-            // クッキーが存在しない場合(シークレットモードの場合、htpps通信じゃない場合、第3者による攻撃の場合など、、)
-            return redirect(route("login"))->with("messages.danger", "ログインに失敗しました。プライベートブラウザだと失敗することがあります。");
+            // クッキーが存在しない場合(シークレットモードの場合、https通信じゃない場合、第3者による攻撃の場合など、、)
+            return redirect(route("login"))->with("messages.danger", "LINEログインに失敗しました");
         }
 
         $state = $_COOKIE['line_login_state'];
-        $collback_state = $request->state;
-        if ($state !== $collback_state) {
-            return redirect(route("login"))->with("messages.danger", "ログインに失敗しました。プライベートブラウザだと失敗することがあります。");
+        $callback_state = $request->state;
+        if ($state !== $callback_state) {
+            return redirect(route("login"))->with("messages.danger", "LINEログインに失敗しました");
             //state不一致の場合はユーザーを自動ログインを行わない認可URLへリダイレクトする
-            // $socialite = $this->redirectToProviderExcecute($request->provider, true);
+            // $socialite = $this->redirectToProviderExecute($request->provider, true);
             // return $socialite->redirect();
         }
         if (isset($_COOKIE['line_code_verifier'])) {
@@ -67,6 +69,7 @@ class LoginController extends Controller
             curl_close($curl);
             $json = json_decode($res);
         }
+
         // 成功時の処理を以後に記載する
         $social_user = Socialite::driver($request->provider)->stateless()->user();
 
@@ -97,12 +100,10 @@ class LoginController extends Controller
      * with()は1回までに収めておく
      *
      * @param string $provider
-     * @param boolean $disable_auto_login_flag
-     * @return \Laravel\Socialite\Contracts\Provider
+     * @return Provider
      */
-    private function redirectToProviderExcecute(string $provider, bool $disable_auto_login_flag = false): \Laravel\Socialite\Contracts\Provider
-    {
-        // lineソーシャルログイン時に友達追加を行えるようにする
+    private function redirectToProviderExecute(string $provider): Provider
+    {// lineソーシャルログイン時に友達追加を行えるようにする
         $bot_prompt = 'normal';
         // リプレイスアタック防止用
         $nonce  = Str::random(32);
@@ -130,25 +131,23 @@ class LoginController extends Controller
             //setcookie('line_code_verifier', $code_verifier, time() + 1800, '/', '', false, true);
         }
 
-        if ($disable_auto_login_flag) {
+        if (false) {
             $param_data['disable_auto_login'] = true;
         }
-
         return Socialite::driver($provider)->with($param_data);
     }
 
     /**
      * code_verifier生成
      * 参考:https://qiita.com/sugamaan/items/50699432a65ad9e5829e
-     * 
+     *
      * Laravel socialiteにもpkce対応関連の機能はあるみたいだが、現状はまだ公式ドキュメントにも
      * 記載が無く、どのように使えば良いか分からないので自作する
-     * @param integer $byteLength
      * @return string code_verifier
      */
-    private function generateCodeVerifier(int $byteLength = 32): string
+    private function generateCodeVerifier(): string
     {
-        $randomBytesString = openssl_random_pseudo_bytes($byteLength);
+        $randomBytesString = openssl_random_pseudo_bytes(32);
         $encodedRandomString = base64_encode($randomBytesString);
         $urlSafeEncoding = [
             '=' => '',
@@ -175,7 +174,7 @@ class LoginController extends Controller
 
     /**
      * リクエストデータ作成
-     * @param CreateInputDto $input
+     * @param string $code
      * @return array
      */
     private function createRequestData(string $code): array
@@ -184,8 +183,7 @@ class LoginController extends Controller
         $client_id = config('services.line.client_id');
         $client_secret = config('services.line.client_secret');
 
-
-        $data = [
+        return [
             "grant_type" => "authorization_code",
             "code" => $code,
             "redirect_uri" => $redirect_uri,
@@ -193,34 +191,32 @@ class LoginController extends Controller
             "client_secret" => $client_secret,
             "code_verifier" => $_COOKIE['line_code_verifier'],
         ];
-
-        return $data;
     }
+
     /**
      * PendingRequestクラスを作成
      * @return PendingRequest
      */
-    private function createPendingRequestInstance(string $token = null): PendingRequest
+    private function createPendingRequestInstance(): PendingRequest
     {
-        $pending_request = Http::withHeaders([
+        return Http::withHeaders([
             'Content-Type' => 'application/x-www-form-urlencoded'
         ]);
-
-        return $pending_request;
     }
 
 
     /**
      * jsonを配列形式に変換
-     *
      * @param string $json
-     * @return stdClass
+     * @return array
+     * @throws JsonException
      */
     private function toArray(string $json): array
     {
         try {
             $content = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
+            echo "例外処理記載";
             throw $e;
         }
 
