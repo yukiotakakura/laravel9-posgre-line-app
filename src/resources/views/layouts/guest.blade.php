@@ -16,7 +16,11 @@
 </head>
 
 <body>
-
+    @if (session('messages.danger'))
+        <p>
+            {{ session('messages.danger') }}
+        </p>
+    @endif
     <div class="font-sans text-gray-900 antialiased">
         {{ $slot }}
     </div>

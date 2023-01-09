@@ -14,9 +14,11 @@
         "laravel/tinker": "^2.7",
         "livewire/livewire": "^2.5",
         "socialiteproviders/line": "^4.1",
-        "ext-openssl": "*"
+        "ext-openssl": "*",
+        "ext-curl": "*"
     },
     "require-dev": {
+        "barryvdh/laravel-ide-helper": "^2.12",
         "fakerphp/faker": "^1.9.1",
         "laravel/pint": "^1.0",
         "laravel/sail": "^1.0.1",

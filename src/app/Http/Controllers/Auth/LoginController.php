@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use JsonException;
@@ -34,26 +36,28 @@ class LoginController extends Controller
     /**
      * コールバック処理
      * @param Request $request
-     * @return Application|RedirectResponse|Redirector|string
+     * @return Application|RedirectResponse|Redirector
      */
-    public function handleProviderCallback(Request $request): string|Redirector|Application|RedirectResponse
+    public function handleProviderCallback(Request $request):Application|RedirectResponse|Redirector
     {
         if (!isset($_COOKIE['line_login_state'])) {
-            // クッキーが存在しない場合(シークレットモードの場合、https通信じゃない場合、第3者による攻撃の場合など、、)
-            return redirect(route("login"))->with("messages.danger", "LINEログインに失敗しました");
+            // クッキーに自生成したstateが無い場合
+            session()->flash('messages.danger', 'LINEログインに失敗しました');
+            return redirect(route("login"));
         }
 
         $state = $_COOKIE['line_login_state'];
-        $callback_state = $request->state;
+        $callback_state = $request->query->get('state');
         if ($state !== $callback_state) {
-            return redirect(route("login"))->with("messages.danger", "LINEログインに失敗しました");
-            //state不一致の場合はユーザーを自動ログインを行わない認可URLへリダイレクトする
-            // $socialite = $this->redirectToProviderExecute($request->provider, true);
-            // return $socialite->redirect();
+            // 自生成したstateとcallbackのstateが一致しない場合
+            session()->flash('messages.danger', 'LINEログインに失敗しました');
+            return redirect(route("login"));
         }
+
         if (isset($_COOKIE['line_code_verifier'])) {
+            // PKCE対応している場合 ※現状はPKCE未対応
             // アクセストークンを発行
-            $data = $this->createRequestData($request->code);
+            $data = $this->createRequestData($request->query->get('code'));
             //$response = $this->createPendingRequestInstance()->post($this->line_api_url, $data);
             //$content = $response->body();
             // curlじゃないと動かない?
@@ -73,29 +77,31 @@ class LoginController extends Controller
         // 成功時の処理を以後に記載する
         $social_user = Socialite::driver($request->provider)->stateless()->user();
 
-        $social_email = $social_user->getEmail();
-        $social_name = $social_user->getName();
-
-        if (!is_null($social_email)) {
-
-            $test = 'ヒカキン';
-
-            // $user = User::firstOrCreate([
-            //     'email' => $social_email
-            // ], [
-            //     'email' => $social_email,
-            //     'name' => $social_name,
-            //     'password' => Hash::make(Str::random())
-            // ]);
-
-            // auth()->login($user);
-            // return redirect('/dashboard');
+        if (is_null($social_user->getEmail())) {
+            // LINEアプリにemailを登録していないLINEユーザも居る
+            session()->flash('messages.danger', 'LINEログインに失敗しました。LINEアプリにemailが未登録です。');
+            return redirect(route("login"));
         }
 
-        return '必要な情報が取得できていません。';
+        $user = User::query()->firstOrCreate([
+            'email' => $social_user->getEmail()
+        ], [
+            'email' => $social_user->getEmail(),
+            'name' => $social_user->getName(),
+            'password' => Hash::make(Str::random()),
+            'current_team_id' => 1,
+        ]);
+
+        // ここから実装
+
+        auth()->login($user);
+        return redirect()->intended('dashboard');
+
     }
 
     //////////////////////////////////////////////// private method ////////////////////////////////////////////////
+    //////////////////////////////////////////////// private method ////////////////////////////////////////////////
+    /// //////////////////////////////////////////////// private method ////////////////////////////////////////////////
     /**
      * with()は1回までに収めておく
      *
@@ -103,7 +109,8 @@ class LoginController extends Controller
      * @return Provider
      */
     private function redirectToProviderExecute(string $provider): Provider
-    {// lineソーシャルログイン時に友達追加を行えるようにする
+    {
+        // lineソーシャルログイン時に友達追加を行えるようにする
         $bot_prompt = 'normal';
         // リプレイスアタック防止用
         $nonce  = Str::random(32);
@@ -131,9 +138,6 @@ class LoginController extends Controller
             //setcookie('line_code_verifier', $code_verifier, time() + 1800, '/', '', false, true);
         }
 
-        if (false) {
-            $param_data['disable_auto_login'] = true;
-        }
         return Socialite::driver($provider)->with($param_data);
     }
 
