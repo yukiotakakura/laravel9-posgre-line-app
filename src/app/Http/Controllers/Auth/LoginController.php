@@ -38,7 +38,7 @@ class LoginController extends Controller
      * @param Request $request
      * @return Application|RedirectResponse|Redirector
      */
-    public function handleProviderCallback(Request $request):Application|RedirectResponse|Redirector
+    public function handleProviderCallback(Request $request): Application|RedirectResponse|Redirector
     {
         if (!isset($_COOKIE['line_login_state'])) {
             // クッキーに自生成したstateが無い場合
@@ -89,19 +89,21 @@ class LoginController extends Controller
             'email' => $social_user->getEmail(),
             'name' => $social_user->getName(),
             'password' => Hash::make(Str::random()),
+            // ひとまずチーム1に固定所属
             'current_team_id' => 1,
         ]);
 
-        // ここから実装
+        //LINEログインのチャネルにリンクされているLINE公式アカウントと、ユーザーの友だち関係を取得できます。
+        //LINE公式アカウントを友だち追加するオプションを含む同意画面がユーザーに表示されなかった場合は、
+        //friendship_status_changedクエリパラメータは含まれません。
 
         auth()->login($user);
         return redirect()->intended('dashboard');
-
     }
 
     //////////////////////////////////////////////// private method ////////////////////////////////////////////////
     //////////////////////////////////////////////// private method ////////////////////////////////////////////////
-    /// //////////////////////////////////////////////// private method ////////////////////////////////////////////////
+    /////////////////////////////////////////////////// private method ////////////////////////////////////////////////
     /**
      * with()は1回までに収めておく
      *
