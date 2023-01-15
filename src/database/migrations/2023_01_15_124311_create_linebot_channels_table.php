@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('linebot_channels', function (Blueprint $table) {
             $table->id()->comment('ID');
-            $table->foreignId('linedeveloper_provider_id')->constrained('linedeveloper_providers');
+            $table->foreignId('linedeveloper_provider_id')->constrained('linedevelopers_providers');
             // BIGINTEGER型、符号無し、ユニーク制約
             $table->bigInteger('channel_id')->unsigned()->unique()->comment('チャンネルID');
             $table->string('name', 20)->comment('チャンネル名');
