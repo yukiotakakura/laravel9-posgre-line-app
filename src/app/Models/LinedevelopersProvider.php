@@ -8,4 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 class LinedevelopersProvider extends Model
 {
     use HasFactory;
+
+    /**
+     * @var string[]
+     */
+    protected $fillable = [
+        'id',
+        'provider_id',
+        'name',
+    ];
 }
