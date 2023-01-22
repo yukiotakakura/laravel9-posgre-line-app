@@ -120,7 +120,6 @@
       <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/var-dumper" />
       <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/http-foundation" />
       <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/uid" />
-      <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/polyfill-php81" />
       <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/http-kernel" />
       <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/translation-contracts" />
       <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/service-contracts" />
@@ -139,6 +138,13 @@
       <excludeFolder url="file://$MODULE_DIR$/src/vendor/doctrine/dbal" />
       <excludeFolder url="file://$MODULE_DIR$/src/vendor/doctrine/event-manager" />
       <excludeFolder url="file://$MODULE_DIR$/src/vendor/doctrine/deprecations" />
+      <excludeFolder url="file://$MODULE_DIR$/src/vendor/squizlabs/php_codesniffer" />
+      <excludeFolder url="file://$MODULE_DIR$/src/vendor/doctrine/annotations" />
+      <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/stopwatch" />
+      <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/filesystem" />
+      <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/options-resolver" />
+      <excludeFolder url="file://$MODULE_DIR$/src/vendor/symfony/polyfill-php81" />
+      <excludeFolder url="file://$MODULE_DIR$/src/vendor/friendsofphp/php-cs-fixer" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
