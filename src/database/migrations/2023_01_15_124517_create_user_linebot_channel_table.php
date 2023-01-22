@@ -14,6 +14,7 @@ return new class() extends Migration {
             $table->id()->comment('ID');
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('linebot_channel_id')->constrained('linebot_channels');
+            $table->string('line_user_id', 100)->comment('LineユーザID');
             // 友達の場合:true 友達じゃない場合:false
             $table->boolean('friend_flag')->default(false)->comment('友達状態');
             $table->timestamps();
