@@ -20,11 +20,11 @@ class TeamFactory extends Factory
      *
      * @return array
      */
-    public function definition()
+    public function definition(): array
     {
         return [
             'name' => $this->faker->company(),
-            'user_id' => User::factory(),
+            'user_id' => 1,
             'personal_team' => true,
         ];
     }

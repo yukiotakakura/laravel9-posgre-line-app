@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\LineloginChannel;
 use App\Models\User;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Client\PendingRequest;
@@ -54,21 +55,22 @@ class LoginController extends Controller
         if (isset($_COOKIE['line_code_verifier'])) {
             // PKCE対応している場合 ※現状はPKCE未対応
             // アクセストークンを発行
-            $data = $this->createRequestData($request->query->get('code'));
+            // $data = $this->createRequestData($request->query->get('code'));
             // $response = $this->createPendingRequestInstance()->post($this->line_api_url, $data);
             // $content = $response->body();
-            // curlじゃないと動かない?
-            $headers = ['Content-Type: application/x-www-form-urlencoded'];
-            $curl = curl_init();
-            curl_setopt($curl, CURLOPT_URL, $this->line_api_url);
-            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
-            $res = curl_exec($curl);
-            curl_close($curl);
-            $json = json_decode($res);
+
+            // HTTPクライアントだとLINE側のAPI叩くことができなかったが、curlだとLINE側のAPIを叩くことができた
+            // $headers = ['Content-Type: application/x-www-form-urlencoded'];
+            // $curl = curl_init();
+            // curl_setopt($curl, CURLOPT_URL, $this->line_api_url);
+            // curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
+            // curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            // curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+            // curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+            // curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
+            // $res = curl_exec($curl);
+            // curl_close($curl);
+            // $json = json_decode($res);
         }
 
         // 成功時の処理を以後に記載する
@@ -90,14 +92,17 @@ class LoginController extends Controller
             // ひとまずチーム1に固定所属
             'current_team_id' => 1,
         ]);
-        $test = 'aa';
+        // 一旦決め打ち
+        $line_login_channel = LineloginChannel::query()->first();
+        $line_login_channel->users()->attach([
+            $user->id => $social_user->accessTokenResponseBody,
+        ]);
         // LINEログインのチャネルにリンクされているLINE公式アカウントと、ユーザーの友だち関係を取得できます。
         // LINE公式アカウントを友だち追加するオプションを含む同意画面がユーザーに表示されなかった場合は、
         // friendship_status_changedクエリパラメータは含まれません。
-
         auth()->login($user);
 
-        return redirect()->intended('dashboard');
+        return redirect()->intended();
     }
 
     // ////////////////////////////////////////////// private method ////////////////////////////////////////////////
@@ -122,9 +127,9 @@ class LoginController extends Controller
         ];
 
         // PKCE対応
-        $code_verifier = $this->generateCodeVerifier();
-        $code_challenge = $this->generateCodeChallenge($code_verifier);
-        $code_challenge_method = 'S256';
+        // $code_verifier = $this->generateCodeVerifier();
+        // $code_challenge = $this->generateCodeChallenge($code_verifier);
+        // $code_challenge_method = 'S256';
         // $param_data['code_challenge'] = $code_challenge;
         // $param_data['code_challenge_method'] = $code_challenge_method;
 
@@ -207,8 +212,6 @@ class LoginController extends Controller
     }
 
     /**
-     * jsonを配列形式に変換.
-     *
      * @throws \JsonException
      */
     private function toArray(string $json): array
@@ -217,6 +220,7 @@ class LoginController extends Controller
             $content = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             echo '例外処理記載';
+
             throw $e;
         }
 

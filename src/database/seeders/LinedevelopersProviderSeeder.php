@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\LinebotChannel;
 use App\Models\LinedevelopersProvider;
+use App\Models\LineloginChannel;
 use Illuminate\Database\Seeder;
 
 class LinedevelopersProviderSeeder extends Seeder
@@ -14,9 +15,11 @@ class LinedevelopersProviderSeeder extends Seeder
     public function run(): void
     {
         LinedevelopersProvider::factory()
-            ->has(LinebotChannel::factory()->count(1), 'linebotChannels')
+            ->has(LineloginChannel::factory()->count(1))
+            ->has(LinebotChannel::factory()->count(1))
             ->count(1)
             ->create()
         ;
     }
 }
+
