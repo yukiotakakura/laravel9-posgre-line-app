@@ -17,6 +17,7 @@ return new class() extends Migration {
             $table->bigInteger('channel_id')->unsigned()->unique()->comment('チャンネルID');
             $table->string('name', 20)->comment('チャンネル名');
             $table->string('channel_secret', 100)->comment('チェンネルシークレット');
+            $table->foreignId('linebot_channel_id')->nullable()->comment('ボットリンクID')->constrained('linebot_channels');
             $table->timestamps();
         });
     }

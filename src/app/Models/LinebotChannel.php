@@ -19,6 +19,7 @@ class LinebotChannel extends Model
         'channel_id',
         'name',
         'channel_secret',
+        'access_token',
     ];
 
     /**
@@ -31,7 +32,7 @@ class LinebotChannel extends Model
 
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class)->withPivot('id', 'user_id', 'linebot_channel_id', 'friend_flag');
+        return $this->belongsToMany(User::class)->withPivot('id', 'user_id', 'linebot_channel_id', 'friend_flag', 'line_user_id');
     }
 
 }
