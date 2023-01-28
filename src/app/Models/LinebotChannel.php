@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class LinebotChannel extends Model
 {
@@ -26,6 +27,11 @@ class LinebotChannel extends Model
     public function linedevelopersProvider(): BelongsTo
     {
         return $this->belongsTo(LinedevelopersProvider::class);
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class)->withPivot('id', 'user_id', 'linebot_channel_id', 'friend_flag');
     }
 
 }

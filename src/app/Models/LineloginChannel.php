@@ -31,6 +31,6 @@ class LineloginChannel extends Model
      */
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class);
+        return $this->belongsToMany(User::class)->withPivot('id', 'user_id', 'linelogin_channel_id', 'access_token');
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\LinebotChannel;
 use App\Models\LineloginChannel;
 use App\Models\User;
 use Illuminate\Contracts\Foundation\Application;
@@ -10,16 +11,20 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
+use Symfony\Component\HttpFoundation\Response;
 
 class LoginController extends Controller
 {
     /** line アクセストークンを発行するエンドポイント */
     private string $line_api_url = 'https://api.line.me/oauth2/v2.1/token';
+
+    private string $line_friendship_url = 'https://api.line.me/friendship/v1/status';
 
     /**
      * ソーシャルログインをするページへリダイレクトする.
@@ -33,6 +38,7 @@ class LoginController extends Controller
 
     /**
      * コールバック処理.
+     * @throws \Throwable
      */
     public function handleProviderCallback(Request $request): Application|RedirectResponse|Redirector
     {
@@ -73,9 +79,7 @@ class LoginController extends Controller
             // $json = json_decode($res);
         }
 
-        // 成功時の処理を以後に記載する
         $social_user = Socialite::driver($request->provider)->stateless()->user();
-
         if (is_null($social_user->getEmail())) {
             // LINEアプリにemailを登録していないLINEユーザも居る
             session()->flash('messages.danger', 'LINEログインに失敗しました。LINEアプリにemailが未登録です。');
@@ -83,23 +87,47 @@ class LoginController extends Controller
             return redirect(route('login'));
         }
 
-        $user = User::query()->firstOrCreate([
-            'email' => $social_user->getEmail(),
-        ], [
-            'email' => $social_user->getEmail(),
-            'name' => $social_user->getName(),
-            'password' => Hash::make(Str::random()),
-            // ひとまずチーム1に固定所属
-            'current_team_id' => 1,
-        ]);
-        // 一旦決め打ち
-        $line_login_channel = LineloginChannel::query()->first();
-        $line_login_channel->users()->attach([
-            $user->id => $social_user->accessTokenResponseBody,
-        ]);
-        // LINEログインのチャネルにリンクされているLINE公式アカウントと、ユーザーの友だち関係を取得できます。
-        // LINE公式アカウントを友だち追加するオプションを含む同意画面がユーザーに表示されなかった場合は、
-        // friendship_status_changedクエリパラメータは含まれません。
+        // 成功時の処理を以後に記載する
+        DB::beginTransaction();
+        try {
+            $user = User::firstOrCreate([
+                'email' => $social_user->getEmail(),
+            ], [
+                'email' => $social_user->getEmail(),
+                'name' => $social_user->getName(),
+                'password' => Hash::make(Str::random()),
+                // ひとまずチーム1に固定所属
+                'current_team_id' => 1,
+            ]);
+            // 一旦決め打ち
+            $linelogin_channel = LineloginChannel::first();
+            $linelogin_channel->users()->syncWithoutDetaching([
+                $user->id => $social_user->accessTokenResponseBody,
+            ]);
+
+            $access_token = $linelogin_channel->users()->where('user_id', '=', $user->id)->get()->first()->pivot->access_token;
+            // 友達状態を取得する
+            $response = $this->createPendingRequestInstance($access_token)->get($this->line_friendship_url);
+            if (Response::HTTP_OK !== $response->status()) {
+                throw new \Exception();
+            }
+
+            $friendFlag = $this->toArray($response->body())['friendFlag'];
+            // 一旦決め打ち
+            $linebot_channel = LinebotChannel::first();
+            $linebot_channel->users()->syncWithoutDetaching([
+                $user->id => [
+                    'friend_flag' => $friendFlag,
+                    'line_user_id' => $social_user->id,
+                ],
+            ]);
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            session()->flash('messages.danger', 'トランザクションエラー');
+            return redirect(route('login'));
+        }
+
         auth()->login($user);
 
         return redirect()->intended();
@@ -204,11 +232,9 @@ class LoginController extends Controller
     /**
      * PendingRequestクラスを作成.
      */
-    private function createPendingRequestInstance(): PendingRequest
+    private function createPendingRequestInstance(string $token): PendingRequest
     {
-        return Http::withHeaders([
-            'Content-Type' => 'application/x-www-form-urlencoded',
-        ]);
+        return Http::withToken($token);
     }
 
     /**
