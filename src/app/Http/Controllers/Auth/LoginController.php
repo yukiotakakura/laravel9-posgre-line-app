@@ -96,7 +96,7 @@ class LoginController extends Controller
                 'email' => $social_user->getEmail(),
                 'name' => $social_user->getName(),
                 'password' => Hash::make(Str::random()),
-                // ひとまずチーム1に固定所属
+                // 一旦チーム1に固定所属
                 'current_team_id' => 1,
             ]);
             // 一旦決め打ち
