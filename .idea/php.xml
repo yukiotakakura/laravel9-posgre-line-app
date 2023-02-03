@@ -162,6 +162,9 @@
       <path value="$PROJECT_DIR$/src/vendor/symfony/options-resolver" />
       <path value="$PROJECT_DIR$/src/vendor/symfony/polyfill-php81" />
       <path value="$PROJECT_DIR$/src/vendor/friendsofphp/php-cs-fixer" />
+      <path value="$PROJECT_DIR$/src/vendor/maximebf/debugbar" />
+      <path value="$PROJECT_DIR$/src/vendor/barryvdh/laravel-debugbar" />
+      <path value="$PROJECT_DIR$/src/vendor/linecorp/line-bot-sdk" />
     </include_path>
   </component>
   <component name="PhpInterpreters">

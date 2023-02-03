@@ -12,11 +12,12 @@ return new class() extends Migration {
     {
         Schema::create('linelogin_channels', function (Blueprint $table) {
             $table->id()->comment('ID');
-            $table->foreignId('linedeveloper_provider_id')->constrained('linedevelopers_providers');
+            $table->foreignId('linedevelopers_provider_id')->constrained('linedevelopers_providers');
             // BIGINTEGER型、符号無し、ユニーク制約
             $table->bigInteger('channel_id')->unsigned()->unique()->comment('チャンネルID');
             $table->string('name', 20)->comment('チャンネル名');
             $table->string('channel_secret', 100)->comment('チェンネルシークレット');
+            $table->foreignId('linebot_channel_id')->nullable()->comment('ボットリンクID')->constrained('linebot_channels');
             $table->timestamps();
         });
     }

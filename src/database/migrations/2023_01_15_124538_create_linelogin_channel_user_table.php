@@ -10,7 +10,7 @@ return new class() extends Migration {
      */
     public function up(): void
     {
-        Schema::create('user_linelogin_channel', function (Blueprint $table) {
+        Schema::create('linelogin_channel_user', function (Blueprint $table) {
             $table->id()->comment('ID');
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('linelogin_channel_id')->constrained('linelogin_channels');
@@ -19,6 +19,7 @@ return new class() extends Migration {
             $table->string('id_token', 1000)->comment('ユーザー情報を含むJSONウェブトークン');
             $table->string('refresh_token', 100)->comment('新しいアクセストークンを取得するためのトークン(有効期間は90日)');
             $table->string('scope', 100)->comment('アクセストークンに付与されている権限。');
+            $table->string('token_type', 50)->comment('トークンタイプ');
         });
     }
 

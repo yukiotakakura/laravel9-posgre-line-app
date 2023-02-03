@@ -19,9 +19,11 @@ class LinedevelopersProvider extends Model
         'name',
     ];
 
-    /**
-     * @return HasMany
-     */
+    public function lineloginChannels(): HasMany
+    {
+        return $this->hasMany(LineloginChannel::class);
+    }
+
     public function linebotChannels(): HasMany
     {
         return $this->hasMany(LinebotChannel::class);

@@ -10,7 +10,7 @@ return new class() extends Migration {
      */
     public function up(): void
     {
-        Schema::create('user_linebot_channel', function (Blueprint $table) {
+        Schema::create('linebot_channel_user', function (Blueprint $table) {
             $table->id()->comment('ID');
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('linebot_channel_id')->constrained('linebot_channels');

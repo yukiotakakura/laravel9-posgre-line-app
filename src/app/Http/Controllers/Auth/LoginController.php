@@ -3,22 +3,28 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\LinebotChannel;
+use App\Models\LineloginChannel;
 use App\Models\User;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
+use Symfony\Component\HttpFoundation\Response;
 
 class LoginController extends Controller
 {
     /** line アクセストークンを発行するエンドポイント */
     private string $line_api_url = 'https://api.line.me/oauth2/v2.1/token';
+
+    private string $line_friendship_url = 'https://api.line.me/friendship/v1/status';
 
     /**
      * ソーシャルログインをするページへリダイレクトする.
@@ -32,6 +38,7 @@ class LoginController extends Controller
 
     /**
      * コールバック処理.
+     * @throws \Throwable
      */
     public function handleProviderCallback(Request $request): Application|RedirectResponse|Redirector
     {
@@ -54,26 +61,25 @@ class LoginController extends Controller
         if (isset($_COOKIE['line_code_verifier'])) {
             // PKCE対応している場合 ※現状はPKCE未対応
             // アクセストークンを発行
-            $data = $this->createRequestData($request->query->get('code'));
+            // $data = $this->createRequestData($request->query->get('code'));
             // $response = $this->createPendingRequestInstance()->post($this->line_api_url, $data);
             // $content = $response->body();
-            // curlじゃないと動かない?
-            $headers = ['Content-Type: application/x-www-form-urlencoded'];
-            $curl = curl_init();
-            curl_setopt($curl, CURLOPT_URL, $this->line_api_url);
-            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
-            $res = curl_exec($curl);
-            curl_close($curl);
-            $json = json_decode($res);
+
+            // HTTPクライアントだとLINE側のAPI叩くことができなかったが、curlだとLINE側のAPIを叩くことができた
+            // $headers = ['Content-Type: application/x-www-form-urlencoded'];
+            // $curl = curl_init();
+            // curl_setopt($curl, CURLOPT_URL, $this->line_api_url);
+            // curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
+            // curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            // curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+            // curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+            // curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
+            // $res = curl_exec($curl);
+            // curl_close($curl);
+            // $json = json_decode($res);
         }
 
-        // 成功時の処理を以後に記載する
         $social_user = Socialite::driver($request->provider)->stateless()->user();
-
         if (is_null($social_user->getEmail())) {
             // LINEアプリにemailを登録していないLINEユーザも居る
             session()->flash('messages.danger', 'LINEログインに失敗しました。LINEアプリにemailが未登録です。');
@@ -81,23 +87,50 @@ class LoginController extends Controller
             return redirect(route('login'));
         }
 
-        $user = User::query()->firstOrCreate([
-            'email' => $social_user->getEmail(),
-        ], [
-            'email' => $social_user->getEmail(),
-            'name' => $social_user->getName(),
-            'password' => Hash::make(Str::random()),
-            // ひとまずチーム1に固定所属
-            'current_team_id' => 1,
-        ]);
-        $test = 'aa';
-        // LINEログインのチャネルにリンクされているLINE公式アカウントと、ユーザーの友だち関係を取得できます。
-        // LINE公式アカウントを友だち追加するオプションを含む同意画面がユーザーに表示されなかった場合は、
-        // friendship_status_changedクエリパラメータは含まれません。
+        // 成功時の処理を以後に記載する
+        DB::beginTransaction();
+        try {
+            $user = User::firstOrCreate([
+                'email' => $social_user->getEmail(),
+            ], [
+                'email' => $social_user->getEmail(),
+                'name' => $social_user->getName(),
+                'password' => Hash::make(Str::random()),
+                // 一旦チーム1に固定所属
+                'current_team_id' => 1,
+            ]);
+            // 一旦決め打ち
+            $linelogin_channel = LineloginChannel::first();
+            $linelogin_channel->users()->syncWithoutDetaching([
+                $user->id => $social_user->accessTokenResponseBody,
+            ]);
+
+            $access_token = $linelogin_channel->users()->where('user_id', '=', $user->id)->get()->first()->pivot->access_token;
+            // 友達状態を取得する
+            $response = $this->createPendingRequestInstance($access_token)->get($this->line_friendship_url);
+            if (Response::HTTP_OK !== $response->status()) {
+                throw new \Exception();
+            }
+
+            $friendFlag = $this->toArray($response->body())['friendFlag'];
+            // 一旦決め打ち
+            $linebot_channel = LinebotChannel::first();
+            $linebot_channel->users()->syncWithoutDetaching([
+                $user->id => [
+                    'friend_flag' => $friendFlag,
+                    'line_user_id' => $social_user->id,
+                ],
+            ]);
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            session()->flash('messages.danger', 'トランザクションエラー');
+            return redirect(route('login'));
+        }
 
         auth()->login($user);
 
-        return redirect()->intended('dashboard');
+        return redirect()->intended();
     }
 
     // ////////////////////////////////////////////// private method ////////////////////////////////////////////////
@@ -122,9 +155,9 @@ class LoginController extends Controller
         ];
 
         // PKCE対応
-        $code_verifier = $this->generateCodeVerifier();
-        $code_challenge = $this->generateCodeChallenge($code_verifier);
-        $code_challenge_method = 'S256';
+        // $code_verifier = $this->generateCodeVerifier();
+        // $code_challenge = $this->generateCodeChallenge($code_verifier);
+        // $code_challenge_method = 'S256';
         // $param_data['code_challenge'] = $code_challenge;
         // $param_data['code_challenge_method'] = $code_challenge_method;
 
@@ -199,16 +232,12 @@ class LoginController extends Controller
     /**
      * PendingRequestクラスを作成.
      */
-    private function createPendingRequestInstance(): PendingRequest
+    private function createPendingRequestInstance(string $token): PendingRequest
     {
-        return Http::withHeaders([
-            'Content-Type' => 'application/x-www-form-urlencoded',
-        ]);
+        return Http::withToken($token);
     }
 
     /**
-     * jsonを配列形式に変換.
-     *
      * @throws \JsonException
      */
     private function toArray(string $json): array
@@ -217,6 +246,7 @@ class LoginController extends Controller
             $content = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             echo '例外処理記載';
+
             throw $e;
         }
 

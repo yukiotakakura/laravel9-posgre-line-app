@@ -19,8 +19,6 @@ class UserFactory extends Factory
 
     /**
      * Define the model's default state.
-     *
-     * @return array
      */
     public function definition(): array
     {
@@ -55,7 +53,7 @@ class UserFactory extends Factory
      */
     public function withPersonalTeam()
     {
-        if (! Features::hasTeamFeatures()) {
+        if (!Features::hasTeamFeatures()) {
             return $this->state([]);
         }
 

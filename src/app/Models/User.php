@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -27,7 +27,7 @@ class User extends Authenticatable
      * @var string[]
      */
     protected $fillable = [
-        'name', 'email', 'password','current_team_id'
+        'name', 'email', 'password', 'current_team_id',
     ];
 
     /**
@@ -60,11 +60,16 @@ class User extends Authenticatable
         'profile_photo_url',
     ];
 
-    /**
-     * @return HasMany
-     */
     public function teams(): HasMany
     {
         return $this->hasMany(Team::class);
+    }
+
+    /**
+     * 中間テーブル.
+     */
+    public function lineloginChannels(): BelongsToMany
+    {
+        return $this->belongsToMany(LineloginChannel::class);
     }
 }

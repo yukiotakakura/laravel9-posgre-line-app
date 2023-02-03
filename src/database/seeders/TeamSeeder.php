@@ -28,7 +28,5 @@ class TeamSeeder extends Seeder
 //                'updated_at' => Carbon::now(),
 //            ],
 //        ]);
-        $team = Team::factory(1)->create();
-        $a = 2;
     }
 }

@@ -30,7 +30,7 @@ class Team extends JetstreamTeam
     protected $fillable = [
         'name',
         'personal_team',
-        'user_id'
+        'user_id',
     ];
 
     /**
@@ -44,9 +44,6 @@ class Team extends JetstreamTeam
         'deleted' => TeamDeleted::class,
     ];
 
-    /**
-     * @return BelongsTo
-     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

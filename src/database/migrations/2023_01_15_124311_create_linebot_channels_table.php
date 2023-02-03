@@ -17,6 +17,7 @@ return new class() extends Migration {
             $table->bigInteger('channel_id')->unsigned()->unique()->comment('チャンネルID');
             $table->string('name', 20)->comment('チャンネル名');
             $table->string('channel_secret', 100)->comment('チェンネルシークレット');
+            $table->string('access_token')->comment('チャネルアクセストークン');
             $table->timestamps();
         });
     }
